@@ -1,0 +1,21 @@
+services:
+  sharding-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sharding-service
+    ports:
+      - "6000:6000"  # gRPC port
+      - "6001:6001"  # HTTP metrics/health check
+    volumes:
+      - ./:/app
+      - ./proto:/app/proto
+    networks:
+      - sharding-network
+    environment:
+      - APP_ENV=development
+    command: tail -f /dev/null  # Keep container running for development
+
+networks:
+  sharding-network:
+    driver: bridge

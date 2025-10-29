@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package tour;
+
+option php_namespace = "Tour\\V1";
+option php_metadata_namespace = "Tour\\V1\\Metadata";
+
+// Service definition
+service TourService {
+    rpc GetTourById (GetTourByIdRequest) returns (TourResponse);
+    rpc ListTours (ListToursRequest) returns (ListToursResponse);
+}
+
+// Request messages
+message GetTourByIdRequest {
+    int64 tour_id = 1;
+    string language = 2;
+}
+
+message ListToursRequest {
+    int32 page = 1;
+    int32 page_size = 2;
+    string filter = 3;
+}
+
+// Response messages
+message TourResponse {
+    int64 id = 1;
+    string name = 2;
+    string description = 3;
+    double price = 4;
+    int32 duration_days = 5;
+    string location = 6;
+    string status = 7;
+    int64 created_at = 8;
+    int64 updated_at = 9;
+}
+
+message ListToursResponse {
+    repeated TourResponse tours = 1;
+    int32 total = 2;
+    int32 page = 3;
+    int32 page_size = 4;
+}

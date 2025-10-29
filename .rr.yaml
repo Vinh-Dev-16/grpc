@@ -1,0 +1,29 @@
+version: "3"
+
+server:
+  command: "php"
+  user: ""
+  group: ""
+  env:
+    - APP_RUNTIME: RoadRunner
+
+http:
+  address: 0.0.0.0:6001
+  middleware: ["gzip"]
+  pool:
+    num_workers: 4
+    max_jobs: 0
+    allocate_timeout: 60s
+    destroy_timeout: 60s
+
+logs:
+  level: error
+  output: stdout
+  err_output: stderr
+  channels:
+    http:
+      level: debug
+
+metrics:
+  address: localhost:2112
+
