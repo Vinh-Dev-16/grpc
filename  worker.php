@@ -2,21 +2,19 @@
 
 declare(strict_types=1);
 
+use Spiral\RoadRunner\GRPC\Invoker;
 use Spiral\RoadRunner\GRPC\Server;
-use Spiral\RoadRunner\Worker;
 use App\Services\TourShardingService;
+use Tour\V1\TourServiceInterface;
 
 require __DIR__ . '/vendor/autoload.php';
 
-// Create RoadRunner worker
-$worker = Worker::create();
-
 // Create gRPC server
-$server = new Server($worker);
+$server = new Server(new Invoker());
 
 // Register your service
 $server->registerService(
-    \Tour\V1\TourServiceInterface::class,
+    TourServiceInterface::class,
     new TourShardingService()
 );
 
