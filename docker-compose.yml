@@ -14,7 +14,8 @@ services:
       - sharding-network
     environment:
       - APP_ENV=development
-    command: tail -f /dev/null  # Keep container running for development
+      - RR_CONFIG=rr
+    restart: unless-stopped
 
 networks:
   sharding-network:

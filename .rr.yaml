@@ -1,29 +1,37 @@
 version: "3"
 
-server:
-  command: "php"
-  user: ""
-  group: ""
-  env:
-    - APP_RUNTIME: RoadRunner
+# ← THÊM PHẦN NÀY
+rpc:
+  listen: tcp://0.0.0.0:7000
 
+grpc:
+  listen: tcp://0.0.0.0:6000      # Gateway gRPC endpoint
+  proto:
+    - "proto/tour.proto"
+  max_recv_msg_size: 52428800
+  max_send_msg_size: 52428800
+
+server:
+  command: "php /app/worker.php"         # Dùng đường dẫn tuyệt đối trong container
+  relay: pipes
+
+pool:
+  num_workers: 4
+  max_jobs: 100
+  allocate_timeout: 60s
+  destroy_timeout: 60s
+
+logs:
+  level: debug
+  output: stdout
+  err_output: stderr
+
+metrics:
+  address: 0.0.0.0:2112
+
+# HTTP section có thể bỏ nếu không dùng
 http:
   address: 0.0.0.0:6001
   middleware: ["gzip"]
   pool:
-    num_workers: 4
-    max_jobs: 0
-    allocate_timeout: 60s
-    destroy_timeout: 60s
-
-logs:
-  level: error
-  output: stdout
-  err_output: stderr
-  channels:
-    http:
-      level: debug
-
-metrics:
-  address: localhost:2112
-
+    num_workers: 2
