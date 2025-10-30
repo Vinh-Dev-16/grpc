@@ -21,15 +21,8 @@ find proto -name "*.proto" -print0 | while IFS= read -r -d '' proto_file; do
         "$proto_file"
 done
 
-# Nếu không tìm thấy file nào, thử với proto/tour.proto trực tiếp
-if [ ! -f generated/Tour/V1/TourServiceClient.php ]; then
-    echo "📄 Generating from proto/tour.proto (direct path)..."
-    protoc --proto_path=proto \
-        --php_out=generated \
-        --plugin=protoc-gen-php-grpc=/usr/local/bin/protoc-gen-php-grpc \
-        --php-grpc_out=generated \
-        proto/tour.proto
-fi
+# Lưu ý: plugin RoadRunner (protoc-gen-php-grpc) KHÔNG sinh client stub kiểu *Client.php.
+# Bạn sẽ dùng `Spiral\\RoadRunner\\GRPC\\Client` kết hợp với interface sinh ra (ví dụ: Tour\\V1\\TourServiceInterface).
 
 echo "✅ Proto generation completed!"
 echo ""

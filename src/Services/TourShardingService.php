@@ -9,6 +9,7 @@ use Tour\V1\GetTourByIdRequest;
 use Tour\V1\TourResponse;
 use Tour\V1\ListToursRequest;
 use Tour\V1\ListToursResponse;
+use Tour\V1\TourServiceClient;
 use Tour\V1\TourServiceInterface;
 use Grpc\ChannelCredentials;
 
@@ -82,12 +83,13 @@ class TourShardingService implements TourServiceInterface
 
     /**
      * Create gRPC client to Tour Service
+     * @throws \Exception
      */
-    private function createTourServiceClient(): \Tour\V1\TourServiceClient
+    private function createTourServiceClient(): TourServiceClient
     {
         $hostname = $this->tourServiceHost . ':' . $this->tourServicePort;
 
-        return new \Tour\V1\TourServiceClient(
+        return new TourServiceClient(
             $hostname,
             [
                 'credentials' => ChannelCredentials::createInsecure(),

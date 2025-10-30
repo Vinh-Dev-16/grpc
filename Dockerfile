@@ -1,77 +1,67 @@
-FROM php:8.2-cli-alpine
+FROM php:8.2-cli
 
-# -----------------------------
-# 1️⃣ Install system dependencies
-# -----------------------------
-RUN set -eux; \
-    apk add --no-cache \
-        git \
-        unzip \
-        libzip-dev \
-        protobuf-dev \
-        protobuf \
-        wget \
-        curl \
-        autoconf \
-        g++ \
-        make \
-        openssl-dev \
-        zlib-dev; \
-    docker-php-ext-install zip pcntl sockets
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    unzip \
+    libzip-dev \
+    protobuf-compiler \
+    wget \
+    curl \
+    build-essential \
+    pkg-config \
+    libssl-dev \
+    zlib1g-dev \
+    autoconf \
+    && docker-php-ext-install zip pcntl sockets \
+    && rm -rf /var/lib/apt/lists/*
 
-# -----------------------------
-# 2️⃣ Install gRPC + Protobuf (optimized)
-# -----------------------------
-RUN set -eux; \
-    curl -L -o /tmp/grpc.tgz https://pecl.php.net/get/grpc-1.62.0.tgz; \
-    curl -L -o /tmp/protobuf.tgz https://pecl.php.net/get/protobuf-3.25.5.tgz; \
-    pecl install /tmp/grpc.tgz /tmp/protobuf.tgz; \
-    docker-php-ext-enable grpc protobuf; \
-    rm -rf /tmp/*.tgz /tmp/pear ~/.pearrc
+# Install PHP gRPC extension - FAST METHOD
+# Sử dụng pecl nhưng với optimization
+RUN pecl channel-update pecl.php.net \
+    && MAKEFLAGS="-j$(nproc)" pecl install grpc \
+    && docker-php-ext-enable grpc \
+    && pecl clear-cache
 
-# -----------------------------
-# 3️⃣ Install Composer
-# -----------------------------
+# Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# -----------------------------
-# 4️⃣ Install RoadRunner
-# -----------------------------
-RUN wget -q https://github.com/roadrunner-server/roadrunner/releases/download/v2023.3.8/roadrunner-2023.3.8-linux-amd64.tar.gz \
- && tar -xzf roadrunner-2023.3.8-linux-amd64.tar.gz \
- && mv roadrunner-2023.3.8-linux-amd64/rr /usr/local/bin/rr \
- && chmod +x /usr/local/bin/rr \
- && rm -rf roadrunner-2023.3.8-linux-amd64*
+# Install RoadRunner
+RUN wget https://github.com/roadrunner-server/roadrunner/releases/download/v2023.3.8/roadrunner-2023.3.8-linux-amd64.tar.gz \
+    && tar -xzf roadrunner-2023.3.8-linux-amd64.tar.gz \
+    && mv roadrunner-2023.3.8-linux-amd64/rr /usr/local/bin/rr \
+    && chmod +x /usr/local/bin/rr \
+    && rm -rf roadrunner-*
 
-# -----------------------------
-# 5️⃣ Install protoc-gen-php-grpc
-# -----------------------------
-RUN wget -q https://github.com/roadrunner-server/roadrunner/releases/download/v2023.3.8/protoc-gen-php-grpc-2023.3.8-linux-amd64.tar.gz \
- && tar -xzf protoc-gen-php-grpc-2023.3.8-linux-amd64.tar.gz \
- && mv protoc-gen-php-grpc /usr/local/bin/ \
- && chmod +x /usr/local/bin/protoc-gen-php-grpc \
- && rm -rf protoc-gen-php-grpc* *.tar.gz
+# Install protoc-gen-php-grpc
+RUN wget https://github.com/roadrunner-server/roadrunner/releases/download/v2023.3.8/protoc-gen-php-grpc-2023.3.8-linux-amd64.tar.gz \
+    && tar -xzf protoc-gen-php-grpc-2023.3.8-linux-amd64.tar.gz \
+    && find . -name "protoc-gen-php-grpc" -type f -exec mv {} /usr/local/bin/ \; \
+    && chmod +x /usr/local/bin/protoc-gen-php-grpc \
+    && rm -rf protoc-gen-php-grpc* *.tar.gz
 
-# -----------------------------
-# 6️⃣ Setup application
-# -----------------------------
+# Set working directory
 WORKDIR /app
 
-# Copy composer files first (for caching)
-COPY composer.json composer.lock* ./
-RUN composer install --no-scripts --no-autoloader --prefer-dist --no-interaction
+# Avoid git "dubious ownership" when running as root in container
+RUN git config --global --add safe.directory /app
 
-# Copy source code
+# Copy composer files
+COPY composer.json composer.lock* ./
+
+# Install PHP dependencies (sync lock if out-of-date)
+RUN composer update --no-scripts --no-autoloader --no-interaction
+
+# Copy application code
 COPY . .
 
-# Ensure proto directory exists
+# Create proto directory structure if not exists
 RUN mkdir -p proto/tour && chmod -R 755 proto
 
-# Optimize autoloader
+# Generate autoload files (skip scripts - will run later)
 RUN composer dump-autoload --optimize --no-scripts
 
-# -----------------------------
-# 7️⃣ Final setup
-# -----------------------------
+# Expose gRPC port
 EXPOSE 6000
+
 CMD ["rr", "serve"]
